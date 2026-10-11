@@ -111,6 +111,11 @@ fn median_radius(radius: f32, px_scale: f32, longest_side: usize) -> isize {
 }
 
 pub fn apply(img: &mut Image, e: &EffectInstance, cx: &FxCtx) {
+    let _timing = crate::timing::start(match e.effect.as_str() {
+        "gaussian_blur" | "fast_blur" => crate::timing::Stage::Blur,
+        "lumetri" => crate::timing::Stage::Lumetri,
+        _ => crate::timing::Stage::OtherEffect,
+    });
     if !e.enabled || img.w == 0 || img.h == 0 {
         return;
     }

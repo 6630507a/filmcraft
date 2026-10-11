@@ -314,6 +314,10 @@ fn gpu_effects_match_cpu_exactly() {
         return;
     };
     let mut c = GpuCompositor::new(&dev, &q);
+    if c.fx.is_none() {
+        eprintln!("SKIPPED (GPU effect parity): adapter has no usable Rgba32Float compute stage");
+        return;
+    }
     let (w, h) = (67u32, 41u32);
     let px = picture(w, h);
     let frame = VideoFrame::rgba_f32(w, h, px.clone());
@@ -371,6 +375,10 @@ fn gpu_effect_chains_match_cpu() {
         return;
     };
     let mut c = GpuCompositor::new(&dev, &q);
+    if c.fx.is_none() {
+        eprintln!("SKIPPED (GPU effect parity): adapter has no usable Rgba32Float compute stage");
+        return;
+    }
     let (w, h) = (96u32, 54u32);
     let px = picture(w, h);
     let frame = VideoFrame::rgba_f32(w, h, px.clone());
@@ -419,6 +427,10 @@ fn keyframed_effects_follow_time() {
         return;
     };
     let mut c = GpuCompositor::new(&dev, &q);
+    if c.fx.is_none() {
+        eprintln!("SKIPPED (GPU effect parity): adapter has no usable Rgba32Float compute stage");
+        return;
+    }
     let (w, h) = (48u32, 32u32);
     let px = picture(w, h);
     let frame = VideoFrame::rgba_f32(w, h, px.clone());
@@ -499,6 +511,10 @@ fn hostile_parameters_are_bounded() {
         return;
     };
     let mut c = GpuCompositor::new(&dev, &q);
+    if c.fx.is_none() {
+        eprintln!("SKIPPED (GPU effect parity): adapter has no usable Rgba32Float compute stage");
+        return;
+    }
     let frame = VideoFrame::rgba_f32(w as u32, h as u32, picture(w as u32, h as u32));
     let ops = vec![
         FxOp::eval(&effect("gaussian_blur", &[("blurriness", fl(1e30))]), &cx(Tick::ZERO, 1.0), w, h).expect("op"),
@@ -584,6 +600,10 @@ fn gpu_effect_layers_match_cpu_plan() {
         return;
     };
     let mut c = GpuCompositor::new(&dev, &q);
+    if c.fx.is_none() {
+        eprintln!("SKIPPED (GPU effect parity): adapter has no usable Rgba32Float compute stage");
+        return;
+    }
     let (w, h) = (320usize, 180usize);
     let ops = |list: &[EffectInstance], lw: u32, lh: u32, px_scale: f32| -> Vec<FxOp> {
         list.iter().filter_map(|e| FxOp::eval(e, &cx(Tick::ZERO, px_scale), lw as usize, lh as usize)).collect()
@@ -652,6 +672,10 @@ fn plain_layers_skip_the_effect_stage() {
         return;
     };
     let mut c = GpuCompositor::new(&dev, &q);
+    if c.fx.is_none() {
+        eprintln!("SKIPPED (GPU effect parity): adapter has no usable Rgba32Float compute stage");
+        return;
+    }
     let plan = FramePlan::Layers { width: 64, height: 36, layers: vec![PlanLayer::new(yuv_frame(64, 36), Affine::IDENTITY, 1.0, Blend::Normal)] };
     c.composite(&plan);
     assert!(c.fx.as_ref().is_some_and(fx::FxStage::is_idle));
@@ -699,6 +723,10 @@ fn layers_with_effects_fall_back_to_the_cpu_without_a_stage() {
     let cpu = execute_cpu(&plan).over_black_rgba8();
     for stage in [true, false] {
         let mut c = GpuCompositor::new(&dev, &q);
+        if stage && c.fx.is_none() {
+            eprintln!("SKIPPED (GPU effect parity): unavailable stage; CPU fallback case still runs");
+            continue;
+        }
         if !stage {
             c.fx = None;
         }
@@ -719,6 +747,10 @@ fn effect_source_identity_preserves_odd_sized_half_float_texels() {
         return;
     };
     let mut c = GpuCompositor::new(&dev, &q);
+    if c.fx.is_none() {
+        eprintln!("SKIPPED (GPU effect parity): adapter has no usable Rgba32Float compute stage");
+        return;
+    }
     for (w, h) in [(67u32, 41u32), (96, 54), (64, 32)] {
         let px = picture(w, h);
         let frame = VideoFrame::rgba_f32(w, h, px.clone());
@@ -739,6 +771,10 @@ fn alpha_invert_does_not_amplify_invented_opacity_at_odd_source_pixels() {
         return;
     };
     let mut c = GpuCompositor::new(&dev, &q);
+    if c.fx.is_none() {
+        eprintln!("SKIPPED (GPU effect parity): adapter has no usable Rgba32Float compute stage");
+        return;
+    }
     let (w, h) = (67, 41);
     let px = picture(w, h);
     let frame = VideoFrame::rgba_f32(w, h, px.clone());
@@ -768,6 +804,10 @@ fn effect_source_integer_decimation_preserves_cpu_box_oracle() {
         return;
     };
     let mut c = GpuCompositor::new(&dev, &q);
+    if c.fx.is_none() {
+        eprintln!("SKIPPED (GPU effect parity): adapter has no usable Rgba32Float compute stage");
+        return;
+    }
     for (w, h) in [(67u32, 41u32), (96, 54)] {
         let frame = VideoFrame::rgba_f32(w, h, picture(w, h));
         for n in [2, 4, 8] {
@@ -779,4 +819,31 @@ fn effect_source_integer_decimation_preserves_cpu_box_oracle() {
             assert!(worst <= EXACT && flips == 0.0, "{w}x{h} n{n} source box: {worst}, {flips}");
         }
     }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn invalid_optional_effect_pipeline_disables_stage_without_panicking() {
+    let Some((dev, q)) = device() else {
+        eprintln!("SKIPPED (optional FX validation regression): no adapter");
+        return;
+    };
+    if !fx::FxStage::supported(&dev) {
+        eprintln!("SKIPPED (optional FX validation regression): no compute limits");
+        return;
+    }
+    let mut compositor = GpuCompositor::new(&dev, &q);
+    // This is a valid shader, but it deliberately omits the composite stage's required
+    // vs/fs_fx_source entrypoints. The old unscoped constructor panicked on this validation.
+    let wrong_shader = dev.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("missing-effect-entrypoints"),
+        source: wgpu::ShaderSource::Wgsl("@vertex fn different() -> @builtin(position) vec4<f32> { return vec4<f32>(0.0); }".into()),
+    });
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| fx::FxStage::try_new(&dev, &wrong_shader, &compositor.layer_bgl)));
+    assert!(result.is_ok(), "optional pipeline validation must not panic");
+    assert!(result.unwrap().is_none(), "invalid effect stage must be disabled");
+    // Capturing the optional error must leave the device usable for normal compositing.
+    let plan = FramePlan::Layers { width: 16, height: 16, layers: vec![] };
+    compositor.composite(&plan);
+    assert!(compositor.read_output().is_some());
 }

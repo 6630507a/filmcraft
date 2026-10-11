@@ -1050,13 +1050,21 @@ fn tiff_size_estimate_tracks_alpha_and_real_output() {
 }
 
 #[test]
-fn gpu_rendering_is_off_by_default() {
-    assert_eq!(ExportSettings::default().gpu_rendering, crate::GpuRendering::Off);
+fn gpu_rendering_defaults_to_auto_and_preserves_explicit_off() {
+    assert_eq!(crate::GpuRendering::default(), crate::GpuRendering::Auto);
+    assert_eq!(ExportSettings::default().gpu_rendering, crate::GpuRendering::Auto);
     // settings saved before the field existed get the default too
     let s: ExportSettings = serde_json::from_value(serde_json::json!({"format": "h264"})).unwrap();
-    assert_eq!(s.gpu_rendering, crate::GpuRendering::Off);
+    assert_eq!(s.gpu_rendering, crate::GpuRendering::Auto);
     let auto: ExportSettings = serde_json::from_value(serde_json::json!({"format": "h264", "gpuRendering": "auto"})).unwrap();
     assert_eq!(auto.gpu_rendering, crate::GpuRendering::Auto);
+    let off: ExportSettings = serde_json::from_value(serde_json::json!({"format": "h264", "gpuRendering": "off"})).unwrap();
+    assert_eq!(off.gpu_rendering, crate::GpuRendering::Off);
+    let restored: ExportSettings = serde_json::from_value(serde_json::to_value(off).unwrap()).unwrap();
+    assert_eq!(restored.gpu_rendering, crate::GpuRendering::Off);
+    for preset in builtin_presets() {
+        assert_eq!(preset.settings.gpu_rendering, crate::GpuRendering::Auto, "preset {}", preset.name);
+    }
 }
 
 /// Brief large peaks over a quiet bed exercise loudness lost during limiter release.
