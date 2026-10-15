@@ -14,6 +14,8 @@ hosted runs exhausted 150 minutes compiling test targets before any tests ran.
 
 The runner installs Mesa Lavapipe and probes its Vulkan adapter. A failed probe
 does not prevent CPU gates from running, but fails the final coverage report.
+The Vulkan ICD selects Lavapipe without overriding `WGPU_BACKEND` for every test;
+startup-policy tests must still observe the upstream default backend set.
 `RUST_TEST_NOCAPTURE=1` exposes the existing GPU tests' adapter/parity/skip messages.
 The reporter requires a successful gate, executed Rust tests and positive GPU
 evidence; runtime no-adapter skips fail acceptance. Intentionally ignored platform

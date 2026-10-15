@@ -22,7 +22,6 @@ env:
   RUST_TEST_THREADS: "2"
   # Passing GPU tests must expose adapter/skip evidence instead of hiding it in captured output.
   RUST_TEST_NOCAPTURE: "1"
-  WGPU_BACKEND: vulkan
 jobs:
   source-pr-ci:
     name: Source PR quality gate (Linux)
