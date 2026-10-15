@@ -15,6 +15,9 @@ env:
   CARGO_TERM_COLOR: always
   CARGO_BUILD_JOBS: "2"
   CARGO_INCREMENTAL: "0"
+  # Keep optimized tests; avoid release-package LTO costs for every test executable.
+  CARGO_PROFILE_RELEASE_LTO: "off"
+  CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "16"
   RUST_BACKTRACE: "1"
   RUST_TEST_THREADS: "2"
   # Passing GPU tests must expose adapter/skip evidence instead of hiding it in captured output.

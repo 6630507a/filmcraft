@@ -7,6 +7,11 @@ The read-only hosted Linux job tests the PR merge result and records both head
 and checkout identities. No PR-target execution or signing/deployment credentials
 are used. The 150-minute cold-build limit is provisional for this new job layout.
 
+The CI environment disables release-profile LTO and uses 16 codegen units for
+`cargo xtask ci`. Tests retain release optimization and the existing gates;
+release packaging keeps the manifest's ThinLTO/single-unit configuration. The first
+hosted runs exhausted 150 minutes compiling test targets before any tests ran.
+
 The runner installs Mesa Lavapipe and probes its Vulkan adapter. A failed probe
 does not prevent CPU gates from running, but fails the final coverage report.
 `RUST_TEST_NOCAPTURE=1` exposes the existing GPU tests' adapter/parity/skip messages.
