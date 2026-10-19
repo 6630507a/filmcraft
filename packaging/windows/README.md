@@ -19,6 +19,23 @@ components, associations and signing stay in the app-owned source. Release build
 sibling checkout, published crate or additional runtime dependency. `/qn`, `/qb` and `/passive`
 remain unattended and do not launch the app.
 
+### Pending shared-template correction
+
+This snapshot includes a Restart Manager correction beyond the pinned shared revision:
+the `MsiRMFilesInUse` OK button publishes `RMShutdownAndRestart` with value `0` and order `1`,
+followed by `EndDialog` / `Return` with order `2`. Apply that same replacement in
+`crates/installer/templates/installer-ui.wxs` before regenerating or checking. The pinned
+generator still publishes `MSIRMSHUTDOWN=2`, so its unmodified drift check is expected to fail
+until the shared correction lands. A separate craft-libs update is required.
+
+Microsoft documents that [MSIRMSHUTDOWN=2](https://learn.microsoft.com/en-us/windows/win32/msi/msirmshutdown)
+does not close any affected processes if one is not registered for restart. The
+[documented dialog event](https://learn.microsoft.com/en-us/windows/win32/msi/msirmfilesinuse-dialog)
+requests shutdown and restart through Restart Manager; policy and application behavior can
+still prevent it. Cancel continues to exit setup. Run
+`python3 packaging/windows/test_installer_ui.py` for the source regression checks; native
+Windows files-in-use acceptance remains pending.
+
 Historical shared-template checks: source/profile checks and native fixture MSI linking/UI table checks passed for x64, x86 and
 ARM64. All 14 profiles passed full UI install, missing-file repair and cached uninstall, and
 x86 silent install/removal. Folder upgrades, desktop choices and all six launch profiles also
