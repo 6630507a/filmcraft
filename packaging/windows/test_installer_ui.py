@@ -46,9 +46,14 @@ class InstallerUiTests(unittest.TestCase):
         self.assertTrue(shows)
         for show in shows:
             self.assertIn("UILevel = 5", show.get("Condition", ""))
-        commands = {p.get("Name"): p.get("Value") for p in self.root.findall(".//w:RegistryValue", NS)}
-        self.assertIn(" /qf /norestart", commands["UninstallString"])
-        self.assertIn(" /qn /norestart", commands["QuietUninstallString"])
+        settings = self.root.find(
+            './/w:Component[@Id="CraftInstallerSettingsEntry"]/w:RegistryKey[@Root="HKLM"]'
+            r'[@Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\Craft.filmcraft"]', NS
+        )
+        self.assertIsNotNone(settings)
+        commands = {p.get("Name"): p.get("Value") for p in settings.findall("w:RegistryValue", NS)}
+        for name, ui in [("UninstallString", "/qf"), ("QuietUninstallString", "/qn")]:
+            self.assertEqual(commands[name], f'"[$(var.CraftMsiSystemFolder)]msiexec.exe" /x [ProductCode] {ui} /norestart')
 
 
 if __name__ == "__main__":
