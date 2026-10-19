@@ -1,12 +1,12 @@
 # Windows installer UI
 
 `installer-ui.wxs` is generated from the shared `craft-installer` crate in
-[craft-libs](https://github.com/storytold/craft-libs/tree/2a2e78b259d89ff168d19f60e0014da57ed2a284/crates/installer).
+[craft-libs](https://github.com/storytold/craft-libs/tree/a3d56cbb41f3e86db4c1a1114d71d56009de8461/crates/installer).
 `package.ps1` compiles it with this app's package source. The common UI provides progress,
 repair/remove, and explicit install/uninstall/repair success, cancellation and failure screens.
 
 Regenerate or check from a sibling craft-libs checkout at
-`2a2e78b259d89ff168d19f60e0014da57ed2a284`:
+`a3d56cbb41f3e86db4c1a1114d71d56009de8461`:
 
 ```sh
 CARGO_BUILD_JOBS=1 cargo run -j1 --locked -p craft-installer -- --write --app filmcraft ../filmcraft/packaging/windows/installer-ui.wxs
@@ -19,14 +19,17 @@ components, associations and signing stay in the app-owned source. Release build
 sibling checkout, published crate or additional runtime dependency. `/qn`, `/qb` and `/passive`
 remain unattended and do not launch the app.
 
-### Pending shared-template correction
+### Published shared-template correction
 
-This snapshot includes a Restart Manager correction beyond the pinned shared revision:
-the `MsiRMFilesInUse` OK button publishes `RMShutdownAndRestart` with value `0` and order `1`,
-followed by `EndDialog` / `Return` with order `2`. Apply that same replacement in
-`crates/installer/templates/installer-ui.wxs` before regenerating or checking. The pinned
-generator still publishes `MSIRMSHUTDOWN=2`, so its unmodified drift check is expected to fail
-until the shared correction lands. A separate craft-libs update is required.
+The pinned generator includes the Restart Manager correction in
+[craft-libs #181](https://github.com/storytold/craft-libs/pull/181), a two-file follow-up stacked
+on the shared installer feature in [craft-libs #157](https://github.com/storytold/craft-libs/pull/157).
+Both PRs must land for the correction to reach craft-libs main. FilmCraft builds use this
+checked-in snapshot; regeneration and drift checking use the exact commit above without
+additional template edits.
+
+The `MsiRMFilesInUse` OK button publishes `RMShutdownAndRestart` with value `0` and order `1`,
+followed by `EndDialog` / `Return` with order `2`.
 
 Microsoft documents that [MSIRMSHUTDOWN=2](https://learn.microsoft.com/en-us/windows/win32/msi/msirmshutdown)
 does not close any affected processes if one is not registered for restart. The
@@ -40,7 +43,7 @@ Historical shared-template checks: source/profile checks and native fixture MSI 
 ARM64. All 14 profiles passed full UI install, missing-file repair and cached uninstall, and
 x86 silent install/removal. Folder upgrades, desktop choices and all six launch profiles also
 passed their Windows fixture checks. See the
-[Windows verification record](https://github.com/storytold/craft-libs/blob/2a2e78b259d89ff168d19f60e0014da57ed2a284/docs/windows-installer-verification.md) for
+[Windows verification record](https://github.com/storytold/craft-libs/blob/a3d56cbb41f3e86db4c1a1114d71d56009de8461/docs/windows-installer-verification.md) for
 interactive results, scope validation and remaining acceptance checks with real release payloads.
 The shared crate includes reusable linking, full UI, option/upgrade/launch and x86 test runners.
 Windows Settings now uses a separate MSI-owned entry whose uninstall command selects full UI,
